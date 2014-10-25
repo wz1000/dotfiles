@@ -117,11 +117,6 @@ import qualified XMonad.Util.ExtensibleState as XS ()
 import Data.List ()
 import XMonad.Prompt.Directory ( directoryPrompt )
 import qualified XMonad.Layout.BinarySpacePartition as BSP
-    ( Direction2D(D, L, R, U),
-      Swap(Swap),
-      Rotate(Rotate),
-      ResizeDirectional(ExpandTowards, ShrinkFrom),
-      emptyBSP )
 import Bar
     ( ColorControl(B, F),
       Alignment(ACenter, ARight, ALeft),
@@ -151,11 +146,7 @@ myLayout = windowNavigation
          $ avoidStruts all
           where
             all            = spacing 30 BSP.emptyBSP
-                          ||| tiledSpace
                           ||| bigMonitor
-                          ||| spacing 0 Grid
-                          ||| Circle
-            tiledSpace     = spacing 60 $ ResizableTall nmaster delta ratio []
             bigMonitor     = spacing 10 $ ThreeColMid   nmaster delta ratio
             -- Default number of windows in master pane
             nmaster = 1
@@ -224,11 +215,11 @@ main = do
   bar 	<- spawnPipe myXmonadBar
   xmonad $ ewmh defaultConfig
     { terminal           = myTerminal
-    , borderWidth        = 4
+    , borderWidth        = 2
     , normalBorderColor  = "#2B2B2B"
     , focusedBorderColor = color5
     , modMask            = myModMask
-    , layoutHook         = smartBorders myLayout
+    , layoutHook         = myLayout
     , workspaces         = myWorkspaces
     , manageHook         = newManageHook
     , handleEventHook    = fullscreenEventHook <+> docksEventHook
@@ -250,15 +241,12 @@ main = do
     ,((myModMask .|. shiftMask , xK_h     ), sendMessage $ Swap L)
     ,((myModMask .|. shiftMask , xK_l     ), sendMessage $ Swap R)
     ,((myModMask               , xK_s     ), sendMessage $ BSP.Swap)
-    ,((myModMask .|. altMask   , xK_l     ), sendMessage $ BSP.ExpandTowards BSP.R)
-    ,((myModMask .|. altMask   , xK_h     ), sendMessage $ BSP.ExpandTowards BSP.L)
-    ,((myModMask .|. altMask   , xK_j     ), sendMessage $ BSP.ExpandTowards BSP.D)
-    ,((myModMask .|. altMask   , xK_k     ), sendMessage $ BSP.ExpandTowards BSP.U)
-    ,((myModMask .|. altMask .|. controlMask , xK_l), sendMessage $ BSP.ShrinkFrom BSP.R)
-    ,((myModMask .|. altMask .|. controlMask , xK_h), sendMessage $ BSP.ShrinkFrom BSP.L)
-    ,((myModMask .|. altMask .|. controlMask , xK_j), sendMessage $ BSP.ShrinkFrom BSP.D)
-    ,((myModMask .|. altMask .|. controlMask , xK_k), sendMessage $ BSP.ShrinkFrom BSP.U)
     ,((myModMask .|. altMask   , xK_r     ), sendMessage BSP.Rotate)
+    ,((myModMask .|. altMask , xK_l     ), sendMessage $ BSP.MoveSplit BSP.East)
+    ,((myModMask .|. altMask , xK_h     ), sendMessage $ BSP.MoveSplit BSP.West)
+    ,((myModMask .|. altMask , xK_j     ), sendMessage $ BSP.MoveSplit BSP.South)
+    ,((myModMask .|. altMask , xK_k     ), sendMessage $ BSP.MoveSplit BSP.North)
+    ,((myModMask .|. altMask , xK_r     ), sendMessage BSP.Rotate)
     ,((myModMask               , xK_r     ), shellPrompt defaultXPConfig)
     ,((myModMask               , xK_m     ), spawn "~/.xmonad/scripts/dzen_music.sh")
     ,((myModMask .|. shiftMask , xK_r     ), spawn "~/scripts/dmenu/spotlight")
@@ -275,14 +263,14 @@ main = do
     ,((myModMask .|. controlMask , xK_l   ), sendMessage Expand)
     ,((myModMask               , xK_comma ), sendMessage (IncMasterN   1 )) -- %! Increment the number of windows in the master area
     ,((myModMask               , xK_period), sendMessage (IncMasterN (-1))) -- %! Deincrement the number of windows in the master area
-    ,((mod1Mask                , xK_a     ), withFocused (keysMoveWindow   (-20,  0)))
-    ,((mod1Mask                , xK_w     ), withFocused (keysMoveWindow   (0  ,-20)))
-    ,((mod1Mask                , xK_s     ), withFocused (keysMoveWindow   (0  , 20)))
-    ,((mod1Mask                , xK_d     ), withFocused (keysMoveWindow   (20 ,  0)))
-    ,((mod1Mask  .|. shiftMask , xK_a     ), withFocused (keysResizeWindow (-20,  0) (0,0)))
-    ,((mod1Mask  .|. shiftMask , xK_w     ), withFocused (keysResizeWindow (0  ,-20) (0,0)))
-    ,((mod1Mask  .|. shiftMask , xK_s     ), withFocused (keysResizeWindow (0  , 20) (0,0)))
-    ,((mod1Mask  .|. shiftMask , xK_d     ), withFocused (keysResizeWindow (20 ,  0) (0,0)))
+    ,((myModMask                , xK_a     ), withFocused (keysMoveWindow   (-20,  0)))
+    ,((myModMask                , xK_w     ), withFocused (keysMoveWindow   (0  ,-20)))
+    ,((myModMask                , xK_s     ), withFocused (keysMoveWindow   (0  , 20)))
+    ,((myModMask                , xK_d     ), withFocused (keysMoveWindow   (20 ,  0)))
+    ,((myModMask  .|. shiftMask , xK_a     ), withFocused (keysResizeWindow (-20,  0) (0,0)))
+    ,((myModMask  .|. shiftMask , xK_w     ), withFocused (keysResizeWindow (0  ,-20) (0,0)))
+    ,((myModMask  .|. shiftMask , xK_s     ), withFocused (keysResizeWindow (0  , 20) (0,0)))
+    ,((myModMask  .|. shiftMask , xK_d     ), withFocused (keysResizeWindow (20 ,  0) (0,0)))
     ,((0                       , xK_Print ), spawn "scrot & mplayer /usr/share/sounds/freedesktop/stereo/screen-capture.oga")
     ,((myModMask               , xK_Print ), spawn "scrot -s & mplayer /usr/share/sounds/freedesktop/stereo/screen-capture.oga")
     ,((0                       , xF86XK_AudioLowerVolume), spawn "~/scripts/dvol2 -d 2 & mplayer /usr/share/sounds/freedesktop/stereo/audio-volume-change.oga")

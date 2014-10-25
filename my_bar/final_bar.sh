@@ -67,8 +67,8 @@ ncmpcpp="if pidof ncmpcpp; then pkill ncmpcpp; else  urxvtc -name alsamixer -e n
 # This loop will fill a buffer with our infos, and output it to stdout.
 while :; do
     buf="%{r}%{F#FF6A9FB5}"
-    buf="${buf} %{A:$htop:}⮦    $(cpuload)%% "
-    buf="${buf} | ⮡: $(memused)%{A}"
+    buf="${buf} %{A:$htop:}⮡    $(cpuload)%% "
+    buf="${buf} | ⮡ $(memused)%{A}"
     buf="${buf} |%{A:$alsamixer:} ⮞ $(volume)%%%{A}"
     buf="${buf} |%{A:$ncmpcpp:} ⮕ $(nowplaying)%{A}"
     buf="${buf} |%{A:gsimplecal&:} ⮖ $(clock)%{A}"
