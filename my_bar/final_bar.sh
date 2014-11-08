@@ -61,9 +61,9 @@ nowplaying() {
     test -n "$cur" && $PARSER <<< $cur || echo "- stopped -"
 }
 
-alsamixer="if pidof alsamixer; then pkill alsamixer; else  urxvtc -name alsamixer -e alsamixer &; fi"
-htop="if pidof htop; then pkill htop; else  urxvtc -name alsamixer -e htop &; fi"
-ncmpcpp="if pidof ncmpcpp; then pkill ncmpcpp; else  urxvtc -name alsamixer -e ncmpcpp &; fi"  
+alsamixer='if [ -n $ALSAMIXER ] && [[ "$(cat /proc/$ALSAMIXER/cmdline)" = *urxvt* ]]; then kill $ALSAMIXER; else  urxvt -name alsamixer -e alsamixer &; ALSAMIXER=$!;  fi'
+htop='if [ -n $HTOP ] && [[ "$(cat /proc/$HTOP/cmdline)" = *urxvt* ]]; then kill $HTOP; else  urxvt -name alsamixer -e htop &; HTOP=$!;  fi'
+ncmpcpp='if [ -n $NCMPCPP ] && [[ "$(cat /proc/$NCMPCPP/cmdline)" = *urxvt* ]]; then kill $NCMPCPP; else  urxvt -name alsamixer -e ncmpcpp &; NCMPCPP=$!;  fi'
 # This loop will fill a buffer with our infos, and output it to stdout.
 while :; do
     buf="%{r}%{F#FF6A9FB5}"

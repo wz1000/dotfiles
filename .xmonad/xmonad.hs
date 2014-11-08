@@ -127,16 +127,19 @@ import Bar
 import Spacing ( SPACING(SPACING), spacing )
 import PerWorkspaceDirs ( getDir, currentWorkspace, changeDir )
 import XMonad.Util.Loggers
+import XMonad.Layout.BorderResize
 
 data FLOATED = FLOATED deriving (Read, Show, Eq, Typeable)
 instance Transformer FLOATED Window where
   transform FLOATED x k = k myFloaU (const x)
 
 myFloaU = simplestFloat
+
 --------------------------------------------------------------------------------------------------------------------
 -- DECLARE WORKSPACES RULES
 --------------------------------------------------------------------------------------------------------------------
 myLayout = windowNavigation
+         $ borderResize
          $ onWorkspace (myWorkspaces !! 6) (avoidStruts simplestFloat)
          $ mkToggle1 NBFULL                                  -- (14)
          $ mkToggle1 REFLECTX                                -- (14,13)
@@ -205,7 +208,7 @@ myLogHook h = dynamicLogWithPP ( defaultPP
 -- Spawn pipes and menus on boot, set default settings
 --------------------------------------------------------------------------------------------------------------------
 myXmonadBar :: String
-myXmonadBar = "bar -f \"-benis-lemon-medium-r-normal--11-110-75-75-m-50-ISO8859-1\" -B \"#FF2B2B2B\" | zsh "
+myXmonadBar = "bar -f \"-benis-uushi-medium-r-normal--11-90-75-75-p-58-iso10646-1\" -B \"#FF2B2B2B\" | zsh "
 
 spawnTerminalInDir :: String -> X ()
 spawnTerminalInDir s = spawn $ "cd " ++ s ++ "; " ++ myTerminal
