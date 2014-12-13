@@ -20,4 +20,6 @@ urxvtd &
 feh --randomize --recursive --bg-fill ~/Wallpapers
 #~/bar_start.sh &
 unclutter -grab  &
+xrdb -merge .Xresources
+wmname LG3D
 xmonad

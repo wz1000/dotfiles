@@ -65,7 +65,7 @@ URxvt*color15 : #EEEEEC
 
 !urxvt extensions:
 
-URxvt.perl-ext-common:  default,matcher,tabbedex,font-size,vtwheel,fullscreen,selection-to-clipboard
+URxvt.perl-ext-common:  default,matcher,tabbedex,font-size,vtwheel,fullscreen,selection-to-clipboard,osc-xterm-clipboard
 
 !enabling clickable links:
 
@@ -99,8 +99,8 @@ Xft.hinting:    1
 Xft.hintstyle:  hintfull
 Xft.rgba:       rgb
 xterm*faceName: Liberation Mono
-xterm*faceSize: 8
-URxvt*font: xft:Liberation Mono-8:bold
+xterm*faceSize: 7 7 7 7 7 7 7 
+URxvt*font: xft:Liberation Mono-8
 URxvt*boldFont: xft:Liberation Mono:bold
 URxvt.letterSpace: -1
 

@@ -1,57 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable, NoMonomorphismRestriction, MultiParamTypeClasses, ImplicitParams #-}
 import XMonad
-    ( Typeable,
-      X,
-      KeyMask,
-      Window,
-      XConfig(borderWidth, focusedBorderColor, handleEventHook,
-              layoutHook, logHook, manageHook, modMask, normalBorderColor,
-              startupHook, terminal, workspaces),
-      spawn,
-      xK_x,
-      xK_w,
-      xK_v,
-      xK_u,
-      xK_t,
-      xK_s,
-      xK_r,
-      xK_q,
-      xK_period,
-      xK_p,
-      xK_n,
-      xK_m,
-      xK_l,
-      xK_k,
-      xK_j,
-      xK_i,
-      xK_h,
-      xK_f,
-      xK_d,
-      xK_comma,
-      xK_c,
-      xK_b,
-      xK_a,
-      xK_Print,
-      shiftMask,
-      mod4Mask,
-      mod1Mask,
-      controlMask,
-      Resize(Expand, Shrink),
-      IncMasterN(IncMasterN),
-      (.|.),
-      withFocused,
-      sendMessage,
-      kill,
-      resource,
-      doIgnore,
-      doFloat,
-      composeAll,
-      (=?),
-      (<+>),
-      (-->),
-      xmonad,
-      (|||),
-      defaultConfig )
 import XMonad.Layout.Fullscreen ( fullscreenEventHook )
 import XMonad.Layout.NoBorders ( smartBorders )
 import XMonad.Layout.PerWorkspace ( onWorkspace )
@@ -128,6 +76,7 @@ import Spacing ( SPACING(SPACING), spacing )
 import PerWorkspaceDirs ( getDir, currentWorkspace, changeDir )
 import XMonad.Util.Loggers
 import XMonad.Layout.BorderResize
+import XMonad.Util.Scratchpad
 
 data FLOATED = FLOATED deriving (Read, Show, Eq, Typeable)
 instance Transformer FLOATED Window where
@@ -139,6 +88,7 @@ myFloaU = simplestFloat
 -- DECLARE WORKSPACES RULES
 --------------------------------------------------------------------------------------------------------------------
 myLayout = windowNavigation
+         $ smartBorders
          $ borderResize
          $ onWorkspace (myWorkspaces !! 6) (avoidStruts simplestFloat)
          $ mkToggle1 NBFULL                                  -- (14)
@@ -177,14 +127,15 @@ myWorkspaces = ["1. Main"
 myManageHook = composeAll
         [ resource =? "dmenu"              --> doFloat
         , resource =? "gsimplecal"         --> placeHook (fixed (1,20/1080))
-        , resource =? "alsamixer"          --> placeHook ( fixed (1,35/1080) ) <+> doFloat
+        , resource =? "barapp"             --> placeHook ( fixed (1,35/1080) ) <+> doFloat
+        , resource =? "runner"             --> placeHook ( fixed (0,1) ) <+> doFloat
         , resource =? "feh"                --> doIgnore
         , resource =? "dzen2"              --> doIgnore
         , resource =? "bar-aint-recursive" --> doIgnore
         , isFullscreen                     --> doFullFloat
         , manageDocks
         ]
-newManageHook = myManageHook <+> placeHook (inBounds (underMouse (0, 0))) <+> manageHook defaultConfig
+newManageHook = myManageHook <+> placeHook (inBounds (underMouse (0, 0))) <+> manageHook defaultConfig <+> scratchpadManageHookDefault
 
 --------------------------------------------------------------------------------------------------------------------
 -- DZEN LOG RULES for workspace names, layout image, current program title
@@ -202,13 +153,20 @@ myLogHook h = dynamicLogWithPP ( defaultPP
     , ppOrder   = \(ws:l:t:xs) -> [trim ws, trim l, trim t ]
     , ppOutput  = hPutStrLn h
     } )
-    where makeClickable ws = let n = take 1 ws in clickable ("xdotool key super+"++n) ws
+      where makeClickable ws | take 1 ws == "N" = ""
+                             | otherwise = let n = take 1 ws in clickable ("xdotool key super+"++n) ws
+
+gsimplecal = "gsimplecal           & "
+alsamixer  = "if [ -n $ALSAMIXER ] && [[ \"$(cat /proc/$ALSAMIXER/cmdline)\" = *urxvt* ]] ; then kill $ALSAMIXER ; else  urxvt -name barapp -e alsamixer & ALSAMIXER=$!; fi"
+htop       = "if [ -n $HTOP      ] && [[ \"$(cat /proc/$HTOP/cmdline)\"      = *urxvt* ]] ; then kill $HTOP      ; else  urxvt -name barapp -e htop      & HTOP=$!; fi"
+ncmpcpp    = "if [ -n $NCMPCPP   ] && [[ \"$(cat /proc/$NCMPCPP/cmdline)\"   = *urxvt* ]] ; then kill $NCMPCPP   ; else  urxvt -name barapp -e ncmpcpp   & NCMPCPP=$!; fi"
+
 
 --------------------------------------------------------------------------------------------------------------------
 -- Spawn pipes and menus on boot, set default settings
 --------------------------------------------------------------------------------------------------------------------
 myXmonadBar :: String
-myXmonadBar = "bar -f \"-benis-uushi-medium-r-normal--11-90-75-75-p-58-iso10646-1\" -B \"#FF2B2B2B\" | zsh "
+myXmonadBar = "bar -f \"-benis-uushi-medium-r-normal--11-90-75-75-p-58-iso10646-1\" -B \"#FF2B2B2B\" | bash "
 
 spawnTerminalInDir :: String -> X ()
 spawnTerminalInDir s = spawn $ "cd " ++ s ++ "; " ++ myTerminal
@@ -216,6 +174,7 @@ spawnTerminalInDir s = spawn $ "cd " ++ s ++ "; " ++ myTerminal
 main :: IO ()
 main = do
   bar 	<- spawnPipe myXmonadBar
+  app <- spawnPipe "bash"
   xmonad $ ewmh defaultConfig
     { terminal           = myTerminal
     , borderWidth        = 2
@@ -235,6 +194,9 @@ main = do
     `additionalKeys`
     [((myModMask .|. shiftMask , xK_b     ), spawn "firefox")
     ,((myModMask .|. shiftMask , xK_t     ), currentWorkspace >>= getDir >>= spawnTerminalInDir)
+    ,((myModMask .|. shiftMask , xK_p     ), spawn "mpc prev")
+    ,((myModMask .|. shiftMask , xK_n     ), spawn "mpc next")
+    ,((myModMask               , xK_Return), currentWorkspace >>= getDir >>= spawnTerminalInDir)
     ,((myModMask               , xK_j     ), sendMessage $ Go D)
     ,((myModMask               , xK_k     ), sendMessage $ Go U)
     ,((myModMask               , xK_h     ), sendMessage $ Go L)
@@ -251,6 +213,7 @@ main = do
     ,((myModMask .|. altMask , xK_k     ), sendMessage $ BSP.MoveSplit BSP.North)
     ,((myModMask .|. altMask , xK_r     ), sendMessage BSP.Rotate)
     ,((myModMask               , xK_r     ), shellPrompt defaultXPConfig)
+    ,((myModMask               , xK_g     ), scratchpadSpawnActionTerminal "urxvt")
     ,((myModMask               , xK_m     ), spawn "~/.xmonad/scripts/dzen_music.sh")
     ,((myModMask .|. shiftMask , xK_r     ), spawn "~/scripts/dmenu/spotlight")
     ,((myModMask               , xK_q     ), spawn "killall bar; cd ~/.xmonad; ghc -fcontext-stack=50  -threaded xmonad.hs; mv xmonad xmonad-x86_64-linux; xmonad --restart;" )
@@ -274,13 +237,17 @@ main = do
     ,((myModMask  .|. shiftMask , xK_w     ), withFocused (keysResizeWindow (0  ,-20) (0,0)))
     ,((myModMask  .|. shiftMask , xK_s     ), withFocused (keysResizeWindow (0  , 20) (0,0)))
     ,((myModMask  .|. shiftMask , xK_d     ), withFocused (keysResizeWindow (20 ,  0) (0,0)))
+    ,((myModMask                , xK_F9    ), io $ hPutStrLn app htop)
+    ,((myModMask                , xK_F10   ), io $ hPutStrLn app alsamixer)
+    ,((myModMask                , xK_F11   ), io $ hPutStrLn app ncmpcpp)
+    ,((myModMask                , xK_F12   ), io $ hPutStrLn app gsimplecal)
     ,((0                       , xK_Print ), spawn "scrot & mplayer /usr/share/sounds/freedesktop/stereo/screen-capture.oga")
     ,((myModMask               , xK_Print ), spawn "scrot -s & mplayer /usr/share/sounds/freedesktop/stereo/screen-capture.oga")
     ,((0                       , xF86XK_AudioLowerVolume), spawn "~/scripts/dvol2 -d 2 & mplayer /usr/share/sounds/freedesktop/stereo/audio-volume-change.oga")
     ,((0                       , xF86XK_AudioRaiseVolume ), spawn "~/scripts/dvol2 -i 2 & mplayer /usr/share/sounds/freedesktop/stereo/audio-volume-change.oga")
     ,((0                       , xF86XK_AudioMute), spawn "~/scripts/dvol2 -t")
     ,((0                       , xF86XK_Sleep), spawn "pm-suspend")
-    ,((0                       , xF86XK_AudioPlay), spawn "mpc toggle")
+    ,((0                       , xF86XK_AudioPlay), spawn "if ! pidof mpd; then mpd; else mpc toggle; fi")
     ,((0                       , xF86XK_AudioNext), spawn "mpc next")
     ,((0                       , xF86XK_AudioPrev), spawn "mpc prev")
     ,((myModMask, xK_b), sendMessage ToggleStruts) -- toggle the statusbar gap

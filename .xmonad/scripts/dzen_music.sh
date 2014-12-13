@@ -2,7 +2,7 @@
 source $(dirname $0)/config.sh
 XPOS=$((1730 + $XOFFSET))
 WIDTH="180"
-LINES="9"
+LINES="7"
 
 playing=$(mpc current)
 artist=$(mpc current -f  %artist%)

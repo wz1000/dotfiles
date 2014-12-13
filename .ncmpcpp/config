@@ -12,7 +12,7 @@
 ## file which defines that while launching ncmpcpp.
 ##
 #
-#ncmpcpp_directory = ~/.ncmpcpp
+ncmpcpp_directory = ~/.ncmpcpp
 #
 ##
 ## Directory for storing downloaded lyrics. It
@@ -20,19 +20,19 @@
 ## (eg. ncmpc) also use that location.
 ##
 #
-#lyrics_directory = ~/.lyrics
+lyrics_directory = ~/.lyrics
 #
 ##### connection settings #####
 #
-#mpd_host = localhost
+mpd_host = localhost
 #
-#mpd_port = 6600
+mpd_port = 6600
 #
-#mpd_connection_timeout = 5
+mpd_connection_timeout = 5
 #
 ## Needed for tag editor and file operations to work.
 ##
-#mpd_music_dir = ~/music
+mpd_music_dir = ~/Music
 #
 #mpd_crossfade_time = 5
 #
@@ -83,7 +83,7 @@ visualizer_in_stereo = yes
 ## Keep in mind that sane values start with >=10.
 ##
 #
-visualizer_sync_interval = 60
+visualizer_sync_interval = 30
 #
 ##
 ## Note: To enable spectrum frequency visualization
@@ -330,7 +330,7 @@ visualizer_type = wave
 #
 ## Available values: classic, alternative.
 ##
-#user_interface = classic
+user_interface = alternative
 #
 ## Available values: artist, album_artist, date, genre, composer, performer.
 ##
@@ -358,9 +358,9 @@ visualizer_type = wave
 #
 #lines_scrolled = 2
 #
-#follow_now_playing_lyrics = no
+follow_now_playing_lyrics = yes
 #
-#fetch_lyrics_for_current_song_in_background = no
+fetch_lyrics_for_current_song_in_background = yes
 #
 #store_lyrics_in_song_dir = no
 #

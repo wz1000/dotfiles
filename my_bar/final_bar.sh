@@ -26,7 +26,7 @@ cpuload() {
 }
 
 memused() {
-  free -m | head -n 3 | tail -n 2 | tr '\n' ' ' | awk '{printf("%2.1fG/%0.2gG\n" ,($10/1024),($2/1024))}'
+  free -m | head -n 2 | tail -n 1 | awk '{printf("%2.1fG/%0.2gG\n" ,($3/1024),($2/1024))}'
 }
 
 network() {
@@ -57,13 +57,13 @@ groups() {
 nowplaying() {
     cur=`mpc current`
     # this line allow to choose whether the output will scroll or not
-    test "$1" = "scroll" && PARSER='skroll -n20 -d0.5 -r' || PARSER='cat'
+    test "$1" = "scroll" && PARSER='skroll -n20 -d0.5 -r' || PARSER='cut -c 1-50'
     test -n "$cur" && $PARSER <<< $cur || echo "- stopped -"
 }
 
-alsamixer='if [ -n $ALSAMIXER ] && [[ "$(cat /proc/$ALSAMIXER/cmdline)" = *urxvt* ]]; then kill $ALSAMIXER; else  urxvt -name alsamixer -e alsamixer &; ALSAMIXER=$!;  fi'
-htop='if [ -n $HTOP ] && [[ "$(cat /proc/$HTOP/cmdline)" = *urxvt* ]]; then kill $HTOP; else  urxvt -name alsamixer -e htop &; HTOP=$!;  fi'
-ncmpcpp='if [ -n $NCMPCPP ] && [[ "$(cat /proc/$NCMPCPP/cmdline)" = *urxvt* ]]; then kill $NCMPCPP; else  urxvt -name alsamixer -e ncmpcpp &; NCMPCPP=$!;  fi'
+alsamixer='xdotool key super+F10'
+htop='xdotool key super+F9'
+ncmpcpp='xdotool key super+F11'
 # This loop will fill a buffer with our infos, and output it to stdout.
 while :; do
     buf="%{r}%{F#FF6A9FB5}"
