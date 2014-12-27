@@ -77,6 +77,7 @@ import PerWorkspaceDirs ( getDir, currentWorkspace, changeDir )
 import XMonad.Util.Loggers
 import XMonad.Layout.BorderResize
 import XMonad.Util.Scratchpad
+import XMonad.Util.NamedScratchpad
 
 data FLOATED = FLOATED deriving (Read, Show, Eq, Typeable)
 instance Transformer FLOATED Window where
@@ -99,7 +100,6 @@ myLayout = windowNavigation
          $ avoidStruts all
           where
             all            = spacing 30 BSP.emptyBSP
-                          ||| bigMonitor
             bigMonitor     = spacing 10 $ ThreeColMid   nmaster delta ratio
             -- Default number of windows in master pane
             nmaster = 1
@@ -108,7 +108,7 @@ myLayout = windowNavigation
             -- Default proportion of the screen taken up by main pane
             ratio = toRational (2/(1 + sqrt 5 :: Double))
 
--------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------
 -- WORKSPACE DEFINITIONS
 --------------------------------------------------------------------------------------------------------------------
 myWorkspaces = ["1. Main"
@@ -121,13 +121,16 @@ myWorkspaces = ["1. Main"
                ,"8. Misc"
                ,"9. Misc2"
                ]
+
 --------------------------------------------------------------------------------------------------------------------
 -- APPLICATION SPECIFIC RULES
 --------------------------------------------------------------------------------------------------------------------
 myManageHook = composeAll
         [ resource =? "dmenu"              --> doFloat
-        , resource =? "gsimplecal"         --> placeHook (fixed (1,20/1080))
-        , resource =? "barapp"             --> placeHook ( fixed (1,35/1080) ) <+> doFloat
+        , resource =? "gsimplecal"         --> placeHook ( fixed (1,20/1080) )
+        , resource =? "htop"               --> placeHook ( fixed (1,35/1080) ) <+> doFloat
+        , resource =? "alsamixer"          --> placeHook ( fixed (1,35/1080) ) <+> doFloat
+        , resource =? "ncmpcpp"            --> placeHook ( fixed (1,35/1080) ) <+> doFloat
         , resource =? "runner"             --> placeHook ( fixed (0,1) ) <+> doFloat
         , resource =? "feh"                --> doIgnore
         , resource =? "dzen2"              --> doIgnore
@@ -135,7 +138,10 @@ myManageHook = composeAll
         , isFullscreen                     --> doFullFloat
         , manageDocks
         ]
-newManageHook = myManageHook <+> placeHook (inBounds (underMouse (0, 0))) <+> manageHook defaultConfig <+> scratchpadManageHookDefault
+newManageHook = myManageHook
+            <+> placeHook (inBounds (underMouse (0, 0)))
+            <+> manageHook defaultConfig
+            <+> scratchpadManageHookDefault
 
 --------------------------------------------------------------------------------------------------------------------
 -- DZEN LOG RULES for workspace names, layout image, current program title
@@ -149,18 +155,21 @@ myLogHook h = dynamicLogWithPP ( defaultPP
     , ppWsSep   = " | "
     , ppSep     = "   "
     , ppLayout  = changeColor F (toBarC color10) . clickable "xdotool key super+space" . pad
-    , ppTitle   = align ACenter . changeColor F (toBarC color10) . clickable2 (3::Int) "xdotool key super+shift+x" .  shorten 80 . pad
+    , ppTitle   = align ACenter
+                . changeColor F (toBarC color10)
+                . clickable2 (3::Int) "xdotool key super+shift+x"
+                .  shorten 80
+                . pad
     , ppOrder   = \(ws:l:t:xs) -> [trim ws, trim l, trim t ]
     , ppOutput  = hPutStrLn h
     } )
       where makeClickable ws | take 1 ws == "N" = ""
                              | otherwise = let n = take 1 ws in clickable ("xdotool key super+"++n) ws
 
-gsimplecal = "gsimplecal           & "
-alsamixer  = "if [ -n $ALSAMIXER ] && [[ \"$(cat /proc/$ALSAMIXER/cmdline)\" = *urxvt* ]] ; then kill $ALSAMIXER ; else  urxvt -name barapp -e alsamixer & ALSAMIXER=$!; fi"
-htop       = "if [ -n $HTOP      ] && [[ \"$(cat /proc/$HTOP/cmdline)\"      = *urxvt* ]] ; then kill $HTOP      ; else  urxvt -name barapp -e htop      & HTOP=$!; fi"
-ncmpcpp    = "if [ -n $NCMPCPP   ] && [[ \"$(cat /proc/$NCMPCPP/cmdline)\"   = *urxvt* ]] ; then kill $NCMPCPP   ; else  urxvt -name barapp -e ncmpcpp   & NCMPCPP=$!; fi"
-
+scratchpads = [ NS "htop" "urxvt -name htop -e htop" (resource =? "htop") defaultFloating
+              , NS "alsamixer" "urxvt -name alsamixer -e alsamixer" (resource =? "alsamixer") defaultFloating
+              , NS "ncmpcpp" "urxvt -name ncmpcpp -e ncmpcpp" (resource =? "ncmpcpp") defaultFloating
+              ]
 
 --------------------------------------------------------------------------------------------------------------------
 -- Spawn pipes and menus on boot, set default settings
@@ -168,13 +177,18 @@ ncmpcpp    = "if [ -n $NCMPCPP   ] && [[ \"$(cat /proc/$NCMPCPP/cmdline)\"   = *
 myXmonadBar :: String
 myXmonadBar = "bar -f \"-benis-uushi-medium-r-normal--11-90-75-75-p-58-iso10646-1\" -B \"#FF2B2B2B\" | bash "
 
+restartXmonad = "killall bar; cd ~/.xmonad; ghc -threaded xmonad.hs; mv xmonad xmonad-x86_64-linux; xmonad --restart;"
+
 spawnTerminalInDir :: String -> X ()
 spawnTerminalInDir s = spawn $ "cd " ++ s ++ "; " ++ myTerminal
+
+toBarC         :: String -> String
+toBarC (x:xs)  = x : "FF" ++ xs
+toBarC ""      = ""
 
 main :: IO ()
 main = do
   bar 	<- spawnPipe myXmonadBar
-  app <- spawnPipe "bash"
   xmonad $ ewmh defaultConfig
     { terminal           = myTerminal
     , borderWidth        = 2
@@ -192,73 +206,66 @@ main = do
 -- Keyboard options
 --------------------------------------------------------------------------------------------------------------------
     `additionalKeys`
-    [((myModMask .|. shiftMask , xK_b     ), spawn "firefox")
-    ,((myModMask .|. shiftMask , xK_t     ), currentWorkspace >>= getDir >>= spawnTerminalInDir)
-    ,((myModMask .|. shiftMask , xK_p     ), spawn "mpc prev")
-    ,((myModMask .|. shiftMask , xK_n     ), spawn "mpc next")
-    ,((myModMask               , xK_Return), currentWorkspace >>= getDir >>= spawnTerminalInDir)
-    ,((myModMask               , xK_j     ), sendMessage $ Go D)
-    ,((myModMask               , xK_k     ), sendMessage $ Go U)
-    ,((myModMask               , xK_h     ), sendMessage $ Go L)
-    ,((myModMask               , xK_l     ), sendMessage $ Go R)
-    ,((myModMask .|. shiftMask , xK_j     ), sendMessage $ Swap D)
-    ,((myModMask .|. shiftMask , xK_k     ), sendMessage $ Swap U)
-    ,((myModMask .|. shiftMask , xK_h     ), sendMessage $ Swap L)
-    ,((myModMask .|. shiftMask , xK_l     ), sendMessage $ Swap R)
-    ,((myModMask               , xK_s     ), sendMessage $ BSP.Swap)
-    ,((myModMask .|. altMask   , xK_r     ), sendMessage BSP.Rotate)
-    ,((myModMask .|. altMask , xK_l     ), sendMessage $ BSP.MoveSplit BSP.East)
-    ,((myModMask .|. altMask , xK_h     ), sendMessage $ BSP.MoveSplit BSP.West)
-    ,((myModMask .|. altMask , xK_j     ), sendMessage $ BSP.MoveSplit BSP.South)
-    ,((myModMask .|. altMask , xK_k     ), sendMessage $ BSP.MoveSplit BSP.North)
-    ,((myModMask .|. altMask , xK_r     ), sendMessage BSP.Rotate)
-    ,((myModMask               , xK_r     ), shellPrompt defaultXPConfig)
-    ,((myModMask               , xK_g     ), scratchpadSpawnActionTerminal "urxvt")
-    ,((myModMask               , xK_m     ), spawn "~/.xmonad/scripts/dzen_music.sh")
-    ,((myModMask .|. shiftMask , xK_r     ), spawn "~/scripts/dmenu/spotlight")
-    ,((myModMask               , xK_q     ), spawn "killall bar; cd ~/.xmonad; ghc -fcontext-stack=50  -threaded xmonad.hs; mv xmonad xmonad-x86_64-linux; xmonad --restart;" )
-    ,((myModMask .|. shiftMask , xK_i     ), spawn "xcalib -invert -alter")
-    ,((myModMask .|. shiftMask , xK_x     ), kill)
-    ,((myModMask .|. shiftMask , xK_c     ), return ())
-    ,((myModMask               , xK_p     ), moveTo Prev NonEmptyWS)
-    ,((myModMask               , xK_n     ), moveTo Next NonEmptyWS)
-    ,((myModMask               , xK_c     ), moveTo Next EmptyWS)
-    ,((myModMask .|. controlMask , xK_j   ), sendMessage MirrorShrink)
-    ,((myModMask .|. controlMask , xK_k   ), sendMessage MirrorExpand)
-    ,((myModMask .|. controlMask , xK_h   ), sendMessage Shrink)
-    ,((myModMask .|. controlMask , xK_l   ), sendMessage Expand)
-    ,((myModMask               , xK_comma ), sendMessage (IncMasterN   1 )) -- %! Increment the number of windows in the master area
-    ,((myModMask               , xK_period), sendMessage (IncMasterN (-1))) -- %! Deincrement the number of windows in the master area
-    ,((myModMask                , xK_a     ), withFocused (keysMoveWindow   (-20,  0)))
+    [((myModMask                , xK_q     ), spawn restartXmonad)
+    ,((myModMask .|. shiftMask  , xK_x     ), kill)
+    ,((myModMask .|. shiftMask  , xK_c     ), return ())
+    ,((myModMask .|. shiftMask  , xK_b     ), spawn "firefox")
+    ,((myModMask .|. shiftMask  , xK_p     ), spawn "mpc prev")
+    ,((myModMask .|. shiftMask  , xK_n     ), spawn "mpc next")
+    ,((myModMask .|. shiftMask  , xK_r     ), spawn "~/scripts/dmenu/spotlight")
+    ,((myModMask .|. shiftMask  , xK_i     ), spawn "xcalib -invert -alter")
+    ,((myModMask .|. shiftMask  , xK_m     ), spawn "~/.xmonad/scripts/dzen_music.sh")
+    ,((myModMask .|. shiftMask  , xK_t     ), currentWorkspace >>= getDir >>= spawnTerminalInDir)
+    ,((myModMask .|. shiftMask  , xK_d     ), directoryPrompt defaultXPConfig "Set working directory: " (\d -> currentWorkspace >>= changeDir d))
+    ,((myModMask .|. shiftMask  , xK_h     ), sendMessage $ Swap L)
+    ,((myModMask .|. shiftMask  , xK_j     ), sendMessage $ Swap D)
+    ,((myModMask .|. shiftMask  , xK_k     ), sendMessage $ Swap U)
+    ,((myModMask .|. shiftMask  , xK_l     ), sendMessage $ Swap R)
+    ,((myModMask                , xK_h     ), sendMessage $ Go L)
+    ,((myModMask                , xK_j     ), sendMessage $ Go D)
+    ,((myModMask                , xK_k     ), sendMessage $ Go U)
+    ,((myModMask                , xK_l     ), sendMessage $ Go R)
+    ,((myModMask                , xK_s     ), sendMessage $ BSP.Swap)
+    ,((myModMask .|. altMask    , xK_r     ), sendMessage $ BSP.Rotate)
+    ,((myModMask .|. altMask    , xK_h     ), sendMessage $ BSP.MoveSplit BSP.West)
+    ,((myModMask .|. altMask    , xK_j     ), sendMessage $ BSP.MoveSplit BSP.South)
+    ,((myModMask .|. altMask    , xK_k     ), sendMessage $ BSP.MoveSplit BSP.North)
+    ,((myModMask .|. altMask    , xK_l     ), sendMessage $ BSP.MoveSplit BSP.East)
+    ,((myModMask                , xK_p     ), moveTo Prev NonEmptyWS)
+    ,((myModMask                , xK_n     ), moveTo Next NonEmptyWS)
+    ,((myModMask                , xK_c     ), moveTo Next EmptyWS)
     ,((myModMask                , xK_w     ), withFocused (keysMoveWindow   (0  ,-20)))
+    ,((myModMask                , xK_a     ), withFocused (keysMoveWindow   (-20,  0)))
     ,((myModMask                , xK_s     ), withFocused (keysMoveWindow   (0  , 20)))
     ,((myModMask                , xK_d     ), withFocused (keysMoveWindow   (20 ,  0)))
-    ,((myModMask  .|. shiftMask , xK_a     ), withFocused (keysResizeWindow (-20,  0) (0,0)))
-    ,((myModMask  .|. shiftMask , xK_w     ), withFocused (keysResizeWindow (0  ,-20) (0,0)))
-    ,((myModMask  .|. shiftMask , xK_s     ), withFocused (keysResizeWindow (0  , 20) (0,0)))
-    ,((myModMask  .|. shiftMask , xK_d     ), withFocused (keysResizeWindow (20 ,  0) (0,0)))
-    ,((myModMask                , xK_F9    ), io $ hPutStrLn app htop)
-    ,((myModMask                , xK_F10   ), io $ hPutStrLn app alsamixer)
-    ,((myModMask                , xK_F11   ), io $ hPutStrLn app ncmpcpp)
-    ,((myModMask                , xK_F12   ), io $ hPutStrLn app gsimplecal)
-    ,((0                       , xK_Print ), spawn "scrot & mplayer /usr/share/sounds/freedesktop/stereo/screen-capture.oga")
-    ,((myModMask               , xK_Print ), spawn "scrot -s & mplayer /usr/share/sounds/freedesktop/stereo/screen-capture.oga")
-    ,((0                       , xF86XK_AudioLowerVolume), spawn "~/scripts/dvol2 -d 2 & mplayer /usr/share/sounds/freedesktop/stereo/audio-volume-change.oga")
-    ,((0                       , xF86XK_AudioRaiseVolume ), spawn "~/scripts/dvol2 -i 2 & mplayer /usr/share/sounds/freedesktop/stereo/audio-volume-change.oga")
-    ,((0                       , xF86XK_AudioMute), spawn "~/scripts/dvol2 -t")
-    ,((0                       , xF86XK_Sleep), spawn "pm-suspend")
-    ,((0                       , xF86XK_AudioPlay), spawn "if ! pidof mpd; then mpd; else mpc toggle; fi")
-    ,((0                       , xF86XK_AudioNext), spawn "mpc next")
-    ,((0                       , xF86XK_AudioPrev), spawn "mpc prev")
-    ,((myModMask, xK_b), sendMessage ToggleStruts) -- toggle the statusbar gap
-    ,((myModMask .|. controlMask, xK_f), sendMessage $ Toggle NBFULL)
-    ,((myModMask .|. controlMask, xK_v), sendMessage $ Toggle REFLECTX)
-    ,((myModMask .|. controlMask, xK_m), sendMessage $ Toggle MIRROR)
-    ,((myModMask .|. controlMask, xK_u), sendMessage $ Toggle FLOATED)
-    ,((myModMask .|. controlMask, xK_i), sendMessage $ SPACING 10)
-    ,((myModMask .|. controlMask, xK_d), sendMessage $ SPACING (negate 10))
-    ,((myModMask .|. controlMask, xK_a), xmonadPrompt defaultXPConfig)
-    ,((myModMask .|. shiftMask  , xK_d), directoryPrompt defaultXPConfig "Set working directory: " (\d -> currentWorkspace >>= changeDir d))
+    ,((myModMask .|. shiftMask  , xK_w     ), withFocused (keysResizeWindow (0  ,-20) (0,0)))
+    ,((myModMask .|. shiftMask  , xK_a     ), withFocused (keysResizeWindow (-20,  0) (0,0)))
+    ,((myModMask .|. shiftMask  , xK_s     ), withFocused (keysResizeWindow (0  , 20) (0,0)))
+    ,((myModMask .|. shiftMask  , xK_d     ), withFocused (keysResizeWindow (20 ,  0) (0,0)))
+    ,((myModMask                , xK_b     ), sendMessage ToggleStruts) -- toggle the statusbar gap
+    ,((myModMask .|. controlMask, xK_f     ), sendMessage $ Toggle NBFULL)
+    ,((myModMask .|. controlMask, xK_v     ), sendMessage $ Toggle REFLECTX)
+    ,((myModMask .|. controlMask, xK_m     ), sendMessage $ Toggle MIRROR)
+    ,((myModMask .|. controlMask, xK_u     ), sendMessage $ Toggle FLOATED)
+    ,((myModMask .|. controlMask, xK_d     ), sendMessage $ SPACING 10)
+    ,((myModMask .|. controlMask, xK_i     ), sendMessage $ SPACING (negate 10))
+    ,((myModMask .|. controlMask, xK_a     ), xmonadPrompt defaultXPConfig)
+    ,((myModMask                , xK_r     ), shellPrompt defaultXPConfig)
+    ,((myModMask                , xK_g     ), scratchpadSpawnActionTerminal "urxvt")
+    ,((myModMask                , xK_F9    ), namedScratchpadAction scratchpads "htop")
+    ,((myModMask                , xK_F10   ), namedScratchpadAction scratchpads "alsamixer")
+    ,((myModMask                , xK_F11   ), namedScratchpadAction scratchpads "ncmpcpp")
+    ,((myModMask                , xK_F12   ), spawn "gsimplecal")
+    ,((myModMask                , xK_Print ), spawn "scrot -s & mplayer /usr/share/sounds/freedesktop/stereo/screen-capture.oga")
+    ,((myModMask                , xK_Return), currentWorkspace >>= getDir >>= spawnTerminalInDir)
+    ,((0                        , xK_Print ), spawn "scrot & mplayer /usr/share/sounds/freedesktop/stereo/screen-capture.oga")
+    ,((0                        , xF86XK_Sleep    ), spawn "pm-suspend")
+    ,((0                        , xF86XK_AudioPlay), spawn "if ! pidof mpd; then mpd; else mpc toggle; fi")
+    ,((0                        , xF86XK_AudioMute), spawn "~/scripts/dvol2 -t")
+    ,((0                        , xF86XK_AudioNext), spawn "mpc next")
+    ,((0                        , xF86XK_AudioPrev), spawn "mpc prev")
+    ,((0                        , xF86XK_AudioLowerVolume), spawn "~/scripts/dvol2 -d 2 & mplayer /usr/share/sounds/freedesktop/stereo/audio-volume-change.oga")
+    ,((0                        , xF86XK_AudioRaiseVolume ), spawn "~/scripts/dvol2 -i 2 & mplayer /usr/share/sounds/freedesktop/stereo/audio-volume-change.oga")
     ]
     `additionalMouseBindings`
     [((myModMask, 6), \_ -> moveTo Next NonEmptyWS)
@@ -269,156 +276,35 @@ main = do
 
 
 -- Define constants
-toBarC :: String -> String
-toBarC (x:xs)  = x : "FF" ++ xs
-toBarC ""      = ""
-
 altMask = mod1Mask
 
 myTerminal :: String
-myTerminal     = "urxvtc"
+myTerminal = "urxvtc"
 
 myBitmapsDir :: String
-myBitmapsDir   = "~/.xmonad/dzen2/"
+myBitmapsDir = "~/.xmonad/dzen2/"
 
 myModMask :: KeyMask
-myModMask      = mod4Mask
+myModMask = mod4Mask
 
 myFont :: String
-myFont         = "-*-tamsyn-medium-r-normal-*-12-87-*-*-*-*-*-*"
---myFont = "-*-terminus-medium-*-normal-*-9-*-*-*-*-*-*-*"
---myFont = "-*-nu-*-*-*-*-*-*-*-*-*-*-*-*"
---myFont = "-artwiz-lime-medium-r-normal-*-10-110-75-75-m-50-iso8859-*"
---myFont = "-artwiz-limey-medium-r-normal-*-10-110-75-75-m-50-iso8859-*"
---myFont = "-benis-lemon-medium-r-normal-*-10-110-75-75-m-50-iso8859-*"
---myFont = "'sans:italic:bold:underline'"
---myFont = "xft:droid sans mono:size=9"
---myFont = "xft:Droxd Sans:size=12"
---myFont = "-*-cure-*-*-*-*-*-*-*-*-*-*-*-*"
+myFont = "-*-tamsyn-medium-r-normal-*-12-87-*-*-*-*-*-*"
 
---background = "#140c0b"
---foreground = "#877a70"
---color0     = "#403f3e"
---color8     = "#666362"
---color1     = "#91444d"
---color9     = "#c78186"
---color2     = "#6b853d"
---color10    = "#abbd80"
---color3     = "#916949"
---color11    = "#cca88b"
---color4     = "#557282"
---color12    = "#8eabbd"
---color5     = "#78516d"
---color13    = "#a8879f"
---color6     = "#58756c"
---color14    = "#8ca8a2"
---color7     = "#94928f"
---color15    = "#cdcdcd"
-
--- CRYPT
---background="#000000"
---foreground="#D3D3D3"
---color0=  "#181818"
---color8=  "#181818"
---color1=  "#D7D7D7"
---color9=  "#D7D7D7"
---color2=  "#AADB0F"
---color10= "#AADB0F"
---color3=  "#666666
---color11= "#666666"
---color4=  "#FFFFFF"
---color12= "#FFFFFF"
---color5=  "#91BA0D"
---color13= "#91BA0D"
---color6=  "#D4D4D4"
---color14= "#D4D4D4"
---color7=  "#D3D3D3"
---color15= "#D3D3D3"
-
---CLOUDS
---background= "#0E0E0E"
---foreground= "#fefefe"
---
---color0= "#454545"
---color8= "#666666"
---color1=  "#CC4747"
---color9=  "#BF5858"
---color2=  "#A0CF5D"
---color10= "#B8D68C"
---color3=  "#FF9B52"
---color11= "#FFB680"
---color4=  "#5FA69B"
---color12= "#99C7BF"
---color5=  "#A966CC"
---color13= "#BD9FCC"
---color6=  "#6CAB79"
---color14= "#95BA9C"
---color7=  "#d3d3d3"
---color15= "#fefefe"
-
--- EROSION EDIT
 background = "#181512"
-foreground = "#D6C3B6"
+foreground = "#d6c3b6"
 color0     = "#332d29"
-color8     = "#817267"
 color1     = "#8c644c"
-color9     = "#9f7155"
-color2     = "#746C48"
-color10    = "#9f7155"
+color2     = "#746c48"
 color3     = "#bfba92"
-color11    = "#E0DAAC"
 color4     = "#646a6d"
-color12    = "#777E82"
 color5     = "#766782"
-color13    = "#897796"
-color6     = "#4B5C5E"
-color14    = "#556D70"
+color6     = "#4b5c5e"
 color7     = "#504339"
+color8     = "#817267"
+color9     = "#9f7155"
+color10    = "#9f7155"
+color11    = "#e0daac"
+color12    = "#777eb2"
+color13    = "#897796"
+color14    = "#556d70"
 color15    = "#9a875f"
--- EROSION
---background= "#181512"
---foreground= "#bea492"
---
---color0= "#332d29"
---color8= "#817267"
---
---color1= "#8c644c"
---color9= "#9f7155"
---
---color2= "#c4be90"
---color10= "#bec17e"
---
---color3= "#bfba92"
---color11= "#fafac0"
---
---color4= "#646a6d"
---color12= "#626e74"
---
---color5= "#6d6871"
---color13= "#756f7b"
---
---color6= "#3b484a"
---color14= "#444d4e"
---
---color7= "#504339"
---color15= "#9a875f"
-
--- PAPEY
---foreground= "#e5e5e5"
---background= "#1d1d1d"
---color0=  "#121212"
---color8=  "#5f5f5F"
---color1=  "#a35b66"
---color9=  "#ab6b74"
---color2=  "#99ab6f"
---color10= "#acb792"
---color3=  "#ca9733"
---color11= "#ccaa69"
---color4=  "#495d6e"
---color12= "#687987"
---color5=  "#825969"
---color13= "#977381"
---color6=  "#839191"
---color14= "#98A4A4"
---color7=  "#E0E0E0"
---color15= "#e5e5e5"

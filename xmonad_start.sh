@@ -21,5 +21,6 @@ feh --randomize --recursive --bg-fill ~/Wallpapers
 #~/bar_start.sh &
 unclutter -grab  &
 xrdb -merge .Xresources
+pulseaudio -D
 wmname LG3D
 xmonad
