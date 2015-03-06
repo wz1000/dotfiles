@@ -1,3 +1,5 @@
+#! /bin/bash
+echo $PATH 1>&2
 compton &
 
 xmodmap -e "remove Lock = Caps_Lock"
@@ -8,6 +10,7 @@ xsetroot -cursor_name left_ptr
 
 # turn off Display Power Management Service (DPMS)
 xset -dpms
+xset -b
 setterm -blank 0 -powerdown 0
 
 # turn off black Screensaver
@@ -17,10 +20,13 @@ xset s off
 xset +fp ~/.fonts
 
 urxvtd &
-feh --randomize --recursive --bg-fill ~/Wallpapers
+scripts/wp slideshow &
 #~/bar_start.sh &
 unclutter -grab  &
+/opt/urserver/urserver --daemon &
+tmux start-server
 xrdb -merge .Xresources
 pulseaudio -D
 wmname LG3D
+mpd && mpc stop && mpdscribble &
 xmonad

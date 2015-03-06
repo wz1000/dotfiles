@@ -6,16 +6,17 @@ from ranger.gui.color import *
 class Default(ColorScheme):
 	def use(self, context):
 		fg, bg, attr = default_colors
+		fg = magenta
 		if context.border:
 			attr = normal
-			fg = black
+			fg = magenta
 
 		if context.reset:
 			return default_colors
 
 		elif context.in_browser:
 			attr = normal
-			fg = black
+			fg = white
 			if context.empty or context.error:
 				fg = magenta
 			if context.media:
@@ -58,7 +59,7 @@ class Default(ColorScheme):
 					attr |= bold
 					fg = yellow
 			else:
-				fg = black
+				fg = magenta
 			if context.badinfo:
 				if attr & reverse:
 					bg = magenta
@@ -81,17 +82,17 @@ class Default(ColorScheme):
 				if context.good:
 					fg = green
 				else:
-					fg = black
+					fg = blue
 			elif context.link:
 				fg = cyan
 			else:
 				fg = green
 
 		elif context.in_statusbar:
-			fg = black
+			fg = magenta
 			if context.permissions:
 				if context.good:
-					fg = black
+					fg = blue
 				elif context.bad:
 					fg = yellow
 			if context.marked:
@@ -111,10 +112,10 @@ class Default(ColorScheme):
 				attr |= reverse
 
 		elif context.main_column:
-			fg = black
+			fg = blue
 
 		elif context.in_console:
-			fg = black
+			fg = magenta
 
 		if context.text:
 			if context.highlight:

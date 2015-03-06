@@ -78,6 +78,11 @@ import XMonad.Util.Loggers
 import XMonad.Layout.BorderResize
 import XMonad.Util.Scratchpad
 import XMonad.Util.NamedScratchpad
+import XMonad.Prompt.MPD
+import qualified Network.MPD as MPD
+import XMonad.Actions.Launcher
+import XMonad.Hooks.FadeInactive
+import XMonad.Hooks.UrgencyHook
 
 data FLOATED = FLOATED deriving (Read, Show, Eq, Typeable)
 instance Transformer FLOATED Window where
@@ -91,7 +96,7 @@ myFloaU = simplestFloat
 myLayout = windowNavigation
          $ smartBorders
          $ borderResize
-         $ onWorkspace (myWorkspaces !! 6) (avoidStruts simplestFloat)
+         $ onWorkspace (myWorkspaces !! 8) (avoidStruts simplestFloat)
          $ mkToggle1 NBFULL                                  -- (14)
          $ mkToggle1 REFLECTX                                -- (14,13)
          $ mkToggle1 REFLECTY                                -- (14,13)
@@ -127,6 +132,7 @@ myWorkspaces = ["1. Main"
 --------------------------------------------------------------------------------------------------------------------
 myManageHook = composeAll
         [ resource =? "dmenu"              --> doFloat
+        , resource =? "pavucontrol"        --> doFloat
         , resource =? "gsimplecal"         --> placeHook ( fixed (1,20/1080) )
         , resource =? "htop"               --> placeHook ( fixed (1,35/1080) ) <+> doFloat
         , resource =? "alsamixer"          --> placeHook ( fixed (1,35/1080) ) <+> doFloat
@@ -188,10 +194,10 @@ toBarC ""      = ""
 
 main :: IO ()
 main = do
-  bar 	<- spawnPipe myXmonadBar
-  xmonad $ ewmh defaultConfig
+  bar <- spawnPipe myXmonadBar
+  xmonad $ withUrgencyHook NoUrgencyHook $ ewmh defaultConfig
     { terminal           = myTerminal
-    , borderWidth        = 2
+    , borderWidth        = 0
     , normalBorderColor  = "#2B2B2B"
     , focusedBorderColor = color5
     , modMask            = myModMask
@@ -200,7 +206,7 @@ main = do
     , manageHook         = newManageHook
     , handleEventHook    = fullscreenEventHook <+> docksEventHook
     , startupHook        = setWMName "LG3D" >> spawn "~/bar_start.sh"
-    , logHook            = myLogHook bar -- >> fadeInactiveLogHook 0xdddddddd
+    , logHook            = myLogHook bar  >> fadeInactiveLogHook 0.9
     }
 --------------------------------------------------------------------------------------------------------------------
 -- Keyboard options
@@ -225,12 +231,16 @@ main = do
     ,((myModMask                , xK_j     ), sendMessage $ Go D)
     ,((myModMask                , xK_k     ), sendMessage $ Go U)
     ,((myModMask                , xK_l     ), sendMessage $ Go R)
-    ,((myModMask                , xK_s     ), sendMessage $ BSP.Swap)
+    ,((myModMask .|. altMask    , xK_s     ), sendMessage $ BSP.Swap)
     ,((myModMask .|. altMask    , xK_r     ), sendMessage $ BSP.Rotate)
-    ,((myModMask .|. altMask    , xK_h     ), sendMessage $ BSP.MoveSplit BSP.West)
-    ,((myModMask .|. altMask    , xK_j     ), sendMessage $ BSP.MoveSplit BSP.South)
-    ,((myModMask .|. altMask    , xK_k     ), sendMessage $ BSP.MoveSplit BSP.North)
-    ,((myModMask .|. altMask    , xK_l     ), sendMessage $ BSP.MoveSplit BSP.East)
+    ,((myModMask .|. altMask    , xK_h     ), sendMessage $ BSP.ExpandTowards L)
+    ,((myModMask .|. altMask    , xK_j     ), sendMessage $ BSP.ExpandTowards D)
+    ,((myModMask .|. altMask    , xK_k     ), sendMessage $ BSP.ExpandTowards U)
+    ,((myModMask .|. altMask    , xK_l     ), sendMessage $ BSP.ExpandTowards R)
+    ,((myModMask .|. altMask .|. controlMask       , xK_h     ), sendMessage $ BSP.MoveSplit L)
+    ,((myModMask .|. altMask .|. controlMask       , xK_j     ), sendMessage $ BSP.MoveSplit D)
+    ,((myModMask .|. altMask .|. controlMask       , xK_k     ), sendMessage $ BSP.MoveSplit U)
+    ,((myModMask .|. altMask .|. controlMask       , xK_l     ), sendMessage $ BSP.MoveSplit R)
     ,((myModMask                , xK_p     ), moveTo Prev NonEmptyWS)
     ,((myModMask                , xK_n     ), moveTo Next NonEmptyWS)
     ,((myModMask                , xK_c     ), moveTo Next EmptyWS)
@@ -247,9 +257,10 @@ main = do
     ,((myModMask .|. controlMask, xK_v     ), sendMessage $ Toggle REFLECTX)
     ,((myModMask .|. controlMask, xK_m     ), sendMessage $ Toggle MIRROR)
     ,((myModMask .|. controlMask, xK_u     ), sendMessage $ Toggle FLOATED)
-    ,((myModMask .|. controlMask, xK_d     ), sendMessage $ SPACING 10)
-    ,((myModMask .|. controlMask, xK_i     ), sendMessage $ SPACING (negate 10))
-    ,((myModMask .|. controlMask, xK_a     ), xmonadPrompt defaultXPConfig)
+    ,((myModMask .|. controlMask, xK_d     ), sendMessage $ SPACING 5)
+    ,((myModMask .|. controlMask, xK_i     ), sendMessage $ SPACING (negate 5))
+    ,((myModMask .|. controlMask, xK_a     ), addAndPlay MPD.withMPD defaultXPConfig [MPD.Title] >> return ())
+    ,((myModMask .|. controlMask, xK_h     ), launcherPrompt defaultXPConfig $ defaultLauncherModes launcherConfig)
     ,((myModMask                , xK_r     ), shellPrompt defaultXPConfig)
     ,((myModMask                , xK_g     ), scratchpadSpawnActionTerminal "urxvt")
     ,((myModMask                , xK_F9    ), namedScratchpadAction scratchpads "htop")
@@ -260,7 +271,7 @@ main = do
     ,((myModMask                , xK_Return), currentWorkspace >>= getDir >>= spawnTerminalInDir)
     ,((0                        , xK_Print ), spawn "scrot & mplayer /usr/share/sounds/freedesktop/stereo/screen-capture.oga")
     ,((0                        , xF86XK_Sleep    ), spawn "pm-suspend")
-    ,((0                        , xF86XK_AudioPlay), spawn "if ! pidof mpd; then mpd; else mpc toggle; fi")
+    ,((0                        , xF86XK_AudioPlay), spawn "if ! pidof mpd; then mpd && mpc play; else mpc toggle; fi")
     ,((0                        , xF86XK_AudioMute), spawn "~/scripts/dvol2 -t")
     ,((0                        , xF86XK_AudioNext), spawn "mpc next")
     ,((0                        , xF86XK_AudioPrev), spawn "mpc prev")
@@ -276,6 +287,7 @@ main = do
 
 
 -- Define constants
+launcherConfig = LauncherConfig { pathToHoogle = "/home/zubin/.cabal/bin/hoogle" , browser = "firefox"}
 altMask = mod1Mask
 
 myTerminal :: String

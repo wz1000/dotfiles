@@ -4,17 +4,47 @@ mkdir Music
 rm -rf The\ Stanley\ Parable
 echo hello
 ls
-delete 
 find .vimperator
 find .vim
 find .vimpe
 open_with vim 
 find .xm
-delete
 shell sudo chown zubin 
-
 shell sudo chown -hR zubin *
-open_with unzip
-open_with 
 shell 
+open_with fbdump
+pmap 
+set preview_images
+set preview_images True
+set preview_script /home/zubin/.config/ranger/scope.sh
+toggle_option 
+help
+help 
+extra
+open_with vim
+unrar
+rename Comonads
+rename Comonads.pdf
+rename DependantTypes.pdf
+rename AssemblyStepByStep
+rename CategoryTheoryForScientists
+rename 
+rename CategoryTheoryForScientists.pdf
+rename LearnYouSomeAlgebra.pdf
+rename IPAddressing.pdf
+rename HaskellOOP.pdf
+rename SevenTrees.pdf
+mkdir Games
+cd .wine
+mkdir SKSE
 S
+open_with firefox
+delete
+unzip
+open_with unzip
+
+open_with 
+o
+de
+delete 
+open_with vlc
